@@ -1,5 +1,3 @@
-
-
 import numpy as np
 import torch.nn as nn
 import torch
@@ -14,7 +12,7 @@ from torchvision import transforms, datasets
 import torch.optim as optim
 from tqdm import tqdm
 import torch.optim.lr_scheduler as lr_scheduler
-
+from AddGaussianNoise import AddGaussianNoise
 import yaml
 from yaml.loader import SafeLoader
 
@@ -98,7 +96,7 @@ class VGG16_(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
 
-def main():
+def main(cfg: dict):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print("using {} device.".format(device))
     # transforms.RandomApply(AddGaussianNoise(args.mean, args.std), p=0.5)
@@ -120,7 +118,7 @@ def main():
                                    ])
     }
 
-    train_dataset = torchvision.datasets.ImageFolder('./train2', transform=data_transform["train"])
+    train_dataset = torchvision.datasets.ImageFolder(cfg['traindir'], transform=data_transform["train"])
 
     train_num = len(train_dataset)
 
@@ -131,19 +129,21 @@ def main():
     # with open('class_indices.json', 'w') as json_file:
     #     json_file.write(json_str)
 
-    save_path = './drive/MyDrive/data/models/noisy_3755.pth'
-    batch_size = 128
-    nw = 2
-    epochs = 50
+    save_path = cfg["save_path"]
+    batch_size = cfg["batch_size"]
+    nw = cfg["nw"]
+    epochs = cfg["epochs"]
     best_acc = 0.0
     # net = handVGG(301)
     # net = torchvision.models.vgg16_bn()
-    net = VGG16_(n_classes=3756)
+    net = VGG16_(n_classes=cfg["num_classes"])
     net.to(device)
-    print("handVGG(301)_repvgglike_fulldata")
+
     # lr = 0.0002 intial lr
-    lr = 0.0002
+    lr = cfg["lr"]
     # lambda1 = lambda : 0.90
+    print("Use " + str(net) + "epochs " + str(epochs) + "classes:" + str(cfg["num_classes"]) + "epochs: " + str(
+        cfg["epochs"]) + "lr: " + str(cfg["lr"]))
 
     optimizer = optim.Adam(net.parameters(), lr=lr)
     # scheduler = ExponentialLR(optimizer, gamma=0.9)
@@ -154,14 +154,13 @@ def main():
     loss_function = nn.CrossEntropyLoss()
 
     # nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
-    print('Using {} dataloader workers every process'.format(nw))
 
     # train_loader = torch.utils.data.DataLoader(train_dataset,
     #                                            batch_size=batch_size, shuffle=True,
     #                                            num_workers=nw)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=nw)
 
-    validate_dataset = datasets.ImageFolder("./test2",
+    validate_dataset = datasets.ImageFolder(cfg["testdir"],
                                             transform=data_transform["val"])
     val_num = len(validate_dataset)
     train_num = len(train_dataset)
@@ -240,8 +239,8 @@ def main():
 
 
 if __name__ == '__main__':
-
+    data = []
     with open('../cfg.yml') as f:
         data = yaml.load(f, Loader=SafeLoader)
-        print(data['src']["train"])
-    main()
+        print(["traindir"])
+    main(data)

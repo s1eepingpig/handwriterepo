@@ -1,2 +1,14 @@
-traindir: content
-testdir: /exampledir
+# train dataset dir
+traindir: ./train2
+#test dataset dir
+testdir: ./test2
+# model save path
+save_path: ./models/noisy_3755.pth
+
+num_classes: 3755
+
+batch_size: 128
+nw: 2
+epochs: 50
+best_acc: 0.0
+lr: 0.0002
