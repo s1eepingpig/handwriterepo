@@ -214,7 +214,7 @@ def main(cfg: dict):
 
                 acc += torch.eq(predict_y, val_labels.to(device)).sum().item()
         train_acc = 0.0
-        if ((epoch + 1) % 9 == 0):
+        if ((epoch + 1) % 5 == 0):
             with torch.no_grad():
 
                 val_bar1 = tqdm(train_loader, file=sys.stdout)
