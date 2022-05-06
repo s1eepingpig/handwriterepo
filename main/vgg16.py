@@ -142,7 +142,7 @@ def main(cfg: dict):
     # lr = 0.0002 intial lr
     lr = cfg["lr"]
     # lambda1 = lambda : 0.90
-    print("Use " + str(net) + "epochs " + str(epochs) + "classes:" + str(cfg["num_classes"]) + "epochs: " + str(
+    print("Use epochs " + str(epochs) + "classes:" + str(cfg["num_classes"]) + "epochs: " + str(
         cfg["epochs"]) + "lr: " + str(cfg["lr"]))
 
     optimizer = optim.Adam(net.parameters(), lr=lr)
