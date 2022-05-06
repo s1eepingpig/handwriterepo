@@ -1,4 +1,5 @@
 # noisy function
+import torch
 class AddGaussianNoise(object):
     def __init__(self, mean=0., std=0.5):
         self.std = std
