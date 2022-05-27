@@ -251,7 +251,7 @@ def main(cfg: dict):
 
                 acc += torch.eq(predict_y, val_labels.to(device)).sum().item()
         train_acc = 0.0
-        if ((epoch + 1) % 5 == 0):
+        if ((epoch + 1) % 10 == 0):
             with torch.no_grad():
 
                 val_bar1 = tqdm(train_loader, file=sys.stdout)
@@ -261,7 +261,7 @@ def main(cfg: dict):
                     _predict = torch.max(outs, dim=1)[1]
                     acctrain += torch.eq(_predict, _labels.to(device)).sum().item()
                 train_acc = acctrain / train_num
-                print('train_acc: %.6f' % train_acc)
+                print('train_acc: %.9f' % train_acc)
 
         val_accurate = acc / val_num
 
