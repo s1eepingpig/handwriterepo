@@ -85,19 +85,7 @@ class VGG16_(nn.Module):
             nn.Conv2d(512, 512, 1, 2),
         )
 
-    def _initialize_weights(self):
-        # 初始化参数，是卷积层的话，使用凯明初始化，BN层的话，我们使用常数初始化，Linear层的话，我们使用高斯初始化
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight, 0, 0.01)
-                nn.init.constant_(m.bias, 0)
+
 
     def forward(self, x):
         out = self.layer1(x)
@@ -143,7 +131,7 @@ def main(cfg: dict):
                                      transforms.ToTensor(),
                                      #  AddGaussianNoise(0.001, 0.009),
                                      #  AddGaussianNoise(args.mean, args.std)
-                                     transforms.RandomApply([AddGaussianNoise(0.001, 0.001)], p=0.01),
+                                     # transforms.RandomApply([AddGaussianNoise(0.001, 0.001)], p=0.01),
                                      transforms.Normalize(0.883, 0.201)
                                      #  transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
                                      ]),
@@ -187,7 +175,7 @@ def main(cfg: dict):
     # scheduler = lr_scheduler(optimizer, lambda1)
     # scheduler = lr_scheduler.MultiStepLR(optimizer,lambda1)
     # scheduler = lr_scheduler.StepLR(optimizer, step_size=5,gamma=0.9)
-    scheduler = lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=16)
+    scheduler = lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=26)
     loss_function = nn.CrossEntropyLoss()
 
     # nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
@@ -265,8 +253,10 @@ def main(cfg: dict):
 
         val_accurate = acc / val_num
 
-        print('[epoch %d] train_loss: %.9f,  val_accuracy: %.9f ' %
-              (epoch + 1, running_loss / train_steps, val_accurate))
+        # print('[epoch %d] train_loss: %.9f,  val_accuracy: %.9f ' %
+        #       (epoch + 1, running_loss / train_steps, val_accurate))
+        print('[epoch %d] train_loss: %.9f,  val_accuracy: %.9f  learning rate is : %f' %
+              (epoch + 1, running_loss / train_steps, val_accurate, optimizer.param_groups[0]['lr']))
 
         if val_accurate > best_acc:
             best_acc = val_accurate
