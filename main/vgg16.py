@@ -36,6 +36,7 @@ def vgg_conv_block(in_list, out_list, k_list, p_list, pooling_k, pooling_s):
 def vgg_fc_layer(size_in, size_out):
     layer = nn.Sequential(
         nn.Linear(size_in, size_out),
+        nn.Dropout(p=0.7),
         nn.BatchNorm1d(size_out),
         nn.ReLU()
     )
@@ -48,6 +49,7 @@ class VGG16_(nn.Module):
 
         # Conv blocks (BatchNorm + ReLU activation added in each block)
         self.layer1 = vgg_conv_block([1, 64], [64, 64], [3, 3], [1, 1], 2, 2)
+        # self.layer1 = vgg_conv_block([1,64], [64,64], [13,13], [1,1], 2, 2)
         self.layer2 = vgg_conv_block([64, 128], [128, 128], [3, 3], [1, 1], 2, 2)
         self.layer3 = vgg_conv_block([128, 256, 256], [256, 256, 256], [3, 3, 3], [1, 1, 1], 2, 2)
         self.layer4 = vgg_conv_block([256, 512, 512], [512, 512, 512], [3, 3, 3], [1, 1, 1], 2, 2)
@@ -55,24 +57,59 @@ class VGG16_(nn.Module):
 
         # FC layers
         # self.layer6 = vgg_fc_layer(7*7*512, 4096) # when 224
-        self.layer6 = vgg_fc_layer(3 * 3 * 512, 4096)  # when input 128
+        # self.layer6 = vgg_fc_layer(3*3*512, 4096) # when input 128
+        self.layer6 = vgg_fc_layer(3 * 3 * 512, 128)  # when input 128
+        # self.layer6 = nn.Conv2d(512, 1024, 1)
         # self.layer6 = vgg_fc_layer(3*8192, 4096)
         # self.layer7 = vgg_fc_layer(4096, 4096)
 
         # Final layer
-        self.layer8 = nn.Linear(4096, n_classes)
+        self.layer8 = nn.Linear(128, n_classes)
+
+        # convert Layers
+        self.convert2 = nn.Conv2d(64, 128, 1, 2, bias=True)  # 64 to 128, add to layer 2
+        self.convert3 = nn.Sequential(
+            nn.Conv2d(64, 256, 1, 2, bias=True),
+            nn.Conv2d(256, 256, 1, 2, bias=True),
+            # nn.AvgPool2d(2, 2)
+        )
+        self.convert4 = nn.Sequential(
+            nn.Conv2d(64, 256, 1, 2),
+            nn.Conv2d(256, 512, 1, 2),
+            nn.Conv2d(512, 512, 1, 2),
+        )
+        self.convert5 = nn.Sequential(
+            nn.Conv2d(64, 256, 1, 2),
+            nn.Conv2d(256, 512, 1, 2),
+            nn.Conv2d(512, 512, 1, 2),
+            nn.Conv2d(512, 512, 1, 2),
+        )
+
+    def _initialize_weights(self):
+        # 初始化参数，是卷积层的话，使用凯明初始化，BN层的话，我们使用常数初始化，Linear层的话，我们使用高斯初始化
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, 0, 0.01)
+                nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
         out = self.layer1(x)
-        # print(out.size())
-        out = self.layer2(out)
-        # print(out.size())
-        out = self.layer3(out)
-        # print(out.size())
-        out = self.layer4(out)
-        # print(out.size())
-        vgg16_features = self.layer5(out)
-        # print(str(vgg16_features.size())+"features shape")
+        add2 = self.convert2(out)
+        add3 = self.convert3(out)
+        add4 = self.convert4(out)
+        add5 = self.convert5(out)
+        out = self.layer2(out) + add2
+        out = self.layer3(out) + add3
+        out = self.layer4(out) + add4
+        vgg16_features = self.layer5(out) + add5
+        # print('layer 5 '+ str(out.size()))
         out = vgg16_features.view(vgg16_features.size(0), -1)
         # print(str(out.size())+"view-1")
         out = self.layer6(out)
@@ -150,7 +187,7 @@ def main(cfg: dict):
     # scheduler = lr_scheduler(optimizer, lambda1)
     # scheduler = lr_scheduler.MultiStepLR(optimizer,lambda1)
     # scheduler = lr_scheduler.StepLR(optimizer, step_size=5,gamma=0.9)
-    scheduler = lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=0.9)
+    scheduler = lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=16)
     loss_function = nn.CrossEntropyLoss()
 
     # nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
@@ -228,14 +265,14 @@ def main(cfg: dict):
 
         val_accurate = acc / val_num
 
-        print('[epoch %d] train_loss: %.6f,  val_accuracy: %.6f ' %
+        print('[epoch %d] train_loss: %.9f,  val_accuracy: %.9f ' %
               (epoch + 1, running_loss / train_steps, val_accurate))
 
         if val_accurate > best_acc:
             best_acc = val_accurate
             torch.save(net.state_dict(), save_path)
 
-    print('Finished Training')
+    print('Finished Training %.9f' % best_acc)
 
 
 if __name__ == '__main__':
