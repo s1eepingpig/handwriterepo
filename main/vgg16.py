@@ -36,7 +36,7 @@ def vgg_conv_block(in_list, out_list, k_list, p_list, pooling_k, pooling_s):
 def vgg_fc_layer(size_in, size_out):
     layer = nn.Sequential(
         nn.Linear(size_in, size_out),
-        nn.Dropout(p=0.7),
+        nn.Dropout(p=0.6),
         nn.BatchNorm1d(size_out),
         nn.ReLU()
     )
@@ -58,13 +58,13 @@ class VGG16_(nn.Module):
         # FC layers
         # self.layer6 = vgg_fc_layer(7*7*512, 4096) # when 224
         # self.layer6 = vgg_fc_layer(3*3*512, 4096) # when input 128
-        self.layer6 = vgg_fc_layer(3 * 3 * 512, 128)  # when input 128
+        self.layer6 = vgg_fc_layer(3 * 3 * 512, 256)  # when input 128
         # self.layer6 = nn.Conv2d(512, 1024, 1)
         # self.layer6 = vgg_fc_layer(3*8192, 4096)
         # self.layer7 = vgg_fc_layer(4096, 4096)
 
         # Final layer
-        self.layer8 = nn.Linear(128, n_classes)
+        self.layer8 = nn.Linear(256, n_classes)
 
         # convert Layers
         self.convert2 = nn.Conv2d(64, 128, 1, 2, bias=True)  # 64 to 128, add to layer 2
@@ -84,27 +84,11 @@ class VGG16_(nn.Module):
             nn.Conv2d(512, 512, 1, 2),
             nn.Conv2d(512, 512, 1, 2),
         )
-
-
-
-    def forward(self, x):
-        out = self.layer1(x)
-        add2 = self.convert2(out)
-        add3 = self.convert3(out)
-        add4 = self.convert4(out)
-        add5 = self.convert5(out)
-        out = self.layer2(out) + add2
-        out = self.layer3(out) + add3
-        out = self.layer4(out) + add4
-        vgg16_features = self.layer5(out) + add5
-        # print('layer 5 '+ str(out.size()))
-        out = vgg16_features.view(vgg16_features.size(0), -1)
-        # print(str(out.size())+"view-1")
-        out = self.layer6(out)
-        # out = self.layer7(out)
-        out = self.layer8(out)
-
-        return out
+        # self.classifier = nn.Sequential(
+        #   nn.AdaptiveAvgPool2d((1, 1)),
+        #   nn.Conv2d(in_channels=512, out_channels=n_classes, kernel_size=1),
+        #   nn.ReLU(inplace=True)
+        #  )
 
     def _initialize_weights(self):
         # 初始化参数，是卷积层的话，使用凯明初始化，BN层的话，我们使用常数初始化，Linear层的话，我们使用高斯初始化
@@ -119,6 +103,25 @@ class VGG16_(nn.Module):
             elif isinstance(m, nn.Linear):
                 nn.init.normal_(m.weight, 0, 0.01)
                 nn.init.constant_(m.bias, 0)
+
+    def forward(self, x):
+        out = self.layer1(x)
+        add2 = self.convert2(out)
+        add3 = self.convert3(out)
+        add4 = self.convert4(out)
+        add5 = self.convert5(out)
+        out = self.layer2(out) + add2
+        out = self.layer3(out) + add3
+        out = self.layer4(out) + add4
+        vgg16_features = self.layer5(out) + add5
+        out = vgg16_features.view(vgg16_features.size(0), -1)
+        # out = self.convfc(out)
+        out = self.layer6(out)
+        # out = self.classifier(out)
+        # out = self.layer7(out)
+        out = self.layer8(out)
+
+        return out
 
 
 def main(cfg: dict):

@@ -6,7 +6,7 @@ testdir: ../../test2
 
 #learning rate
 lr: 0.0001
-epochs: 60
+epochs: 30
 # model save path
 save_path: ../noisy_3755.pth
 
