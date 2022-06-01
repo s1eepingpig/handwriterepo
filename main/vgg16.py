@@ -21,7 +21,7 @@ def conv_layer(chann_in, chann_out, k_size, p_size):
     layer = nn.Sequential(
         nn.Conv2d(chann_in, chann_out, kernel_size=k_size, padding=p_size),
         nn.BatchNorm2d(chann_out),
-        nn.ReLU()
+        nn.LeakyReLU()
     )
     return layer
 
@@ -36,9 +36,10 @@ def vgg_conv_block(in_list, out_list, k_list, p_list, pooling_k, pooling_s):
 def vgg_fc_layer(size_in, size_out):
     layer = nn.Sequential(
         nn.Linear(size_in, size_out),
-        nn.Dropout(p=0.6),
+        nn.Dropout(p=0.7),
         nn.BatchNorm1d(size_out),
-        nn.ReLU()
+        # nn.ReLU()
+        nn.LeakyReLU()
     )
     return layer
 
@@ -58,13 +59,13 @@ class VGG16_(nn.Module):
         # FC layers
         # self.layer6 = vgg_fc_layer(7*7*512, 4096) # when 224
         # self.layer6 = vgg_fc_layer(3*3*512, 4096) # when input 128
-        self.layer6 = vgg_fc_layer(3 * 3 * 512, 256)  # when input 128
+        self.layer6 = vgg_fc_layer(3 * 3 * 512, 512)  # when input 128
         # self.layer6 = nn.Conv2d(512, 1024, 1)
         # self.layer6 = vgg_fc_layer(3*8192, 4096)
         # self.layer7 = vgg_fc_layer(4096, 4096)
 
         # Final layer
-        self.layer8 = nn.Linear(256, n_classes)
+        self.layer8 = nn.Linear(512, n_classes)
 
         # convert Layers
         self.convert2 = nn.Conv2d(64, 128, 1, 2, bias=True)  # 64 to 128, add to layer 2
@@ -178,7 +179,7 @@ def main(cfg: dict):
     # scheduler = lr_scheduler(optimizer, lambda1)
     # scheduler = lr_scheduler.MultiStepLR(optimizer,lambda1)
     # scheduler = lr_scheduler.StepLR(optimizer, step_size=5,gamma=0.9)
-    scheduler = lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=26)
+    scheduler = lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=25)
     loss_function = nn.CrossEntropyLoss()
 
     # nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
